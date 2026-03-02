@@ -1,0 +1,119 @@
+### Test 1: Check Printer Status
+python printer_stl.py status
+
+--Reports current printer state (connected/disconnected, printing/paused/idle)
+
+### Test 2: Connect to Printer
+python printer_stl.py connect
+
+--Establishes connection to printer on configured port/baud
+
+### Test 3: Disconnect from Printer
+python printer_stl.py disconnect
+
+--Gracefully closes the serial connection
+
+### Test 4: Query Printer Temperature
+python printer_stl.py gcode "M105"
+
+--Sends temperature query command to printer
+
+### Test 5: Query Current Position
+python printer_stl.py gcode "M114"
+
+--Queries current nozzle position (X, Y, Z coordinates)
+
+### Test 6: Home All Axes
+python printer_stl.py gcode "G28"
+
+--Sends home command - printer will move to origin on all 
+
+### Test 7: Move Nozzle Up (5mm)
+python printer_stl.py gcode "G91"
+python printer_stl.py gcode "G1 Z5"
+python printer_stl.py gcode "G90"
+
+What it does:
+
+G91: Set relative positioning
+G1 Z5: Move Z up 5mm
+G90: Set absolute positioning back
+
+
+### Test 8: Heat Nozzle to 200°C
+python printer_stl.py gcode "M104 S200"
+
+--Set nozzle target temperature to 200°C (M104 = no wait)
+
+### Test 9: Heat Bed to 60°C
+python printer_stl.py gcode "M140 S60"
+
+--Set bed target temperature to 60°C (M140 = no wait)
+
+### Test 10: Turn Off All Heat (Emergency)
+python printer_stl.py gcode "M104 S0"
+python printer_stl.py gcode "M140 S0"
+
+--Set both nozzle and bed to 0°C (off)
+
+### Test 12: Slice and Print (Full Workflow)
+python printer_stl.py slice-and-print
+
+
+### Test 14: Print Existing G-code File
+python printer_stl.py print /path/to/file.gcode
+
+
+### Test 16: Pause Print During Printing
+# In one terminal, start a print:
+python printer_stl.py print /path/to/file.gcode
+
+# In another terminal (while printing):
+python printer_stl.py pause
+
+
+### Test 17: Resume Paused Print
+
+python printer_stl.py resume
+
+
+### Test 18: Stop Print (Cancel)
+
+python printer_stl.py stop
+
+### Test 20: Full Workflow Test Sequence
+# 1. Connect
+python printer_stl.py connect
+
+# 2. Check status
+python printer_stl.py status
+
+# 3. Heat bed
+python printer_stl.py gcode "M140 S60"
+python printer_stl.py gcode "M104 S200"
+
+# 4. Wait, then home
+sleep 10
+python printer_stl.py gcode "G28"
+
+# 5. Check temperature
+python printer_stl.py gcode "M105"
+
+# 6. Start print (no wait)
+python printer_stl.py print /path/to/test.gcode --no-wait
+
+# 7. Monitor for 30 seconds
+for i in {1..6}; do python printer_stl.py status; sleep 5; done
+
+# 8. Pause
+python printer_stl.py pause
+
+# 9. Check status
+python printer_stl.py status
+
+# 10. Resume
+python printer_stl.py resume
+
+# 11. Disconnect
+python printer_stl.py disconnect
+

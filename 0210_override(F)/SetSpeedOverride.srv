@@ -1,0 +1,7 @@
+# SetSpeedOverride.srv
+# 设置速度覆写值（百分比或固定值）
+
+float32 value    # 速度值（百分比1-200，或固定速度>0）
+---
+bool success     # 是否成功
+string message   # 返回消息

@@ -1,0 +1,311 @@
+====
+快速开始
+bash# 启动节点
+./gcode_sender_node.py
+
+# 在另一个终端运行测试
+./test_gcode_sender.py your_file.gcode
+
+
+
+
+
+# G-code Sender ROS Node
+
+## 功能概述
+
+这是一个ROS节点，用于逐行读取并发送G-code指令到3D打印机，支持：
+
+- ✅ 逐行读取G-code文件
+- ✅ 按顺序发送每行指令
+- ✅ 实时暂停/恢复功能
+- ✅ 从暂停点继续（不会重头开始）
+- ✅ 停止任务
+- ✅ 实时状态监控（温度、位置、进度）
+
+## 文件说明
+
+1. **gcode_sender_node.py** - 主ROS节点
+2. **test_gcode_sender.py** - 测试脚本
+3. **printer_stl.py** - 现有的切片文件（独立）
+
+## 依赖项
+
+```bash
+# ROS依赖
+sudo apt-get install ros-<distro>-std-msgs ros-<distro>-std-srvs
+
+# Python依赖
+pip3 install printrun
+```
+
+## 使用方法
+
+### 1. 启动ROS核心
+
+```bash
+roscore
+```
+
+### 2. 启动G-code发送节点
+
+在新终端中：
+
+```bash
+chmod +x gcode_sender_node.py
+./gcode_sender_node.py
+```
+
+或者：
+
+```bash
+python3 gcode_sender_node.py
+```
+
+### 3. 运行测试脚本（推荐）
+
+在另一个终端中：
+
+```bash
+chmod +x test_gcode_sender.py
+./test_gcode_sender.py /path/to/your/file.gcode
+```
+
+测试脚本会引导你完成：
+- 加载G-code文件
+- 连接打印机
+- 开始发送
+- 交互式控制（暂停/恢复/停止）
+
+### 4. 手动控制（通过ROS服务）
+
+#### 加载G-code文件
+
+```bash
+rostopic pub /gcode_sender/load_file std_msgs/String "data: '/path/to/file.gcode'"
+```
+
+#### 连接打印机
+
+```bash
+rosservice call /gcode_sender/connect
+```
+
+#### 开始发送
+
+```bash
+rosservice call /gcode_sender/start
+```
+
+#### 暂停
+
+```bash
+rosservice call /gcode_sender/pause
+```
+
+#### 恢复
+
+```bash
+rosservice call /gcode_sender/resume
+```
+
+#### 停止
+
+```bash
+rosservice call /gcode_sender/stop
+```
+
+#### 断开连接
+
+```bash
+rosservice call /gcode_sender/disconnect
+```
+
+## ROS接口
+
+### 服务 (Services)
+
+| 服务名 | 类型 | 功能 |
+|--------|------|------|
+| `/gcode_sender/connect` | `std_srvs/Trigger` | 连接到打印机 |
+| `/gcode_sender/disconnect` | `std_srvs/Trigger` | 断开打印机连接 |
+| `/gcode_sender/start` | `std_srvs/Trigger` | 开始发送G-code |
+| `/gcode_sender/pause` | `std_srvs/Trigger` | 暂停发送 |
+| `/gcode_sender/resume` | `std_srvs/Trigger` | 恢复发送 |
+| `/gcode_sender/stop` | `std_srvs/Trigger` | 停止发送 |
+
+### 话题 (Topics)
+
+#### 订阅 (Subscribed)
+
+| 话题名 | 类型 | 功能 |
+|--------|------|------|
+| `/gcode_sender/load_file` | `std_msgs/String` | 加载G-code文件路径 |
+
+#### 发布 (Published)
+
+| 话题名 | 类型 | 功能 |
+|--------|------|------|
+| `/gcode_sender/status` | `std_msgs/String` | 状态信息（时间、进度、温度、位置） |
+| `/gcode_sender/progress` | `std_msgs/Float32` | 进度百分比 (0-100) |
+| `/gcode_sender/current_line` | `std_msgs/Int32` | 当前发送的行号 |
+| `/gcode_sender/is_running` | `std_msgs/Bool` | 是否正在运行 |
+| `/gcode_sender/is_paused` | `std_msgs/Bool` | 是否暂停 |
+
+## 监控状态
+
+### 查看实时状态
+
+```bash
+rostopic echo /gcode_sender/status
+```
+
+### 查看进度
+
+```bash
+rostopic echo /gcode_sender/progress
+```
+
+### 查看当前行
+
+```bash
+rostopic echo /gcode_sender/current_line
+```
+
+## 配置文件
+
+节点会读取 `printer_config.ini` 文件中的连接配置：
+
+```ini
+[printer]
+port = /dev/ttyACM0
+baud = 115200
+status_update_interval = 10
+```
+
+## 工作流程示例
+
+### 完整打印流程
+
+```bash
+# 终端1: 启动ROS核心
+roscore
+
+# 终端2: 启动节点
+./gcode_sender_node.py
+
+# 终端3: 发送命令
+# 1. 加载文件
+rostopic pub /gcode_sender/load_file std_msgs/String "data: 'testing/cutbox_10mm.gcode'" -1
+
+# 2. 连接打印机
+rosservice call /gcode_sender/connect
+
+# 3. 开始打印
+rosservice call /gcode_sender/start
+
+# 4. (可选) 中途暂停
+rosservice call /gcode_sender/pause
+
+# 5. (可选) 恢复
+rosservice call /gcode_sender/resume
+
+# 6. (可选) 停止
+rosservice call /gcode_sender/stop
+```
+
+## 暂停/恢复机制
+
+节点使用线程事件（`threading.Event`）实现暂停/恢复：
+
+1. **暂停时**：
+   - 记录当前行号
+   - 阻塞发送线程
+   - 打印机保持连接状态
+
+2. **恢复时**：
+   - 从记录的行号继续
+   - 不会重头开始
+   - 状态无缝衔接
+
+## 与现有切片脚本的关系
+
+两个脚本是**完全独立**的：
+
+- **printer_stl.py**：负责STL切片生成G-code
+- **gcode_sender_node.py**：负责发送G-code到打印机
+
+典型工作流：
+
+```bash
+# 步骤1: 使用printer_stl.py生成G-code
+python3 printer_stl.py  # 生成 print_file.gcode
+
+# 步骤2: 使用gcode_sender_node.py发送
+./test_gcode_sender.py print_file.gcode
+```
+
+## 故障排查
+
+### 节点无法连接打印机
+
+- 检查端口：`ls /dev/ttyACM* /dev/ttyUSB*`
+- 检查权限：`sudo chmod 666 /dev/ttyACM0`
+- 检查配置文件中的端口设置
+
+### 服务调用失败
+
+- 确认ROS核心在运行：`roscore`
+- 确认节点在运行：`rosnode list`
+- 检查服务列表：`rosservice list`
+
+### G-code文件加载失败
+
+- 确认文件路径正确
+- 确认文件存在且可读
+- 检查文件格式（每行一条G-code）
+
+## 高级使用
+
+### Python API调用示例
+
+```python
+import rospy
+from std_msgs.msg import String
+from std_srvs.srv import Trigger
+
+rospy.init_node('my_controller')
+
+# 加载文件
+pub = rospy.Publisher('/gcode_sender/load_file', String, queue_size=1)
+pub.publish('/path/to/file.gcode')
+
+# 连接并开始
+connect = rospy.ServiceProxy('/gcode_sender/connect', Trigger)
+start = rospy.ServiceProxy('/gcode_sender/start', Trigger)
+
+connect()
+start()
+
+# 暂停5秒后恢复
+rospy.sleep(5)
+pause = rospy.ServiceProxy('/gcode_sender/pause', Trigger)
+pause()
+
+rospy.sleep(5)
+resume = rospy.ServiceProxy('/gcode_sender/resume', Trigger)
+resume()
+```
+
+## 安全注意事项
+
+⚠️ **重要提醒**：
+
+1. 首次使用时建议使用小型测试G-code文件
+2. 确保打印机处于安全状态（已归零、温度正常）
+3. 暂停功能只停止发送新指令，不会停止打印机运动
+4. 紧急情况请直接断电或使用打印机的紧急停止按钮
+
+## 许可证
+
+本项目基于现有的 printrun 库开发。

@@ -1,0 +1,3 @@
+timestamp,robot_speed_ms,action,printer_state,response_time_ms,notes
+2026-02-16T07:12:48.027659,0.1000,PAUSE,PRINTING,15,高速: 0.1000 m/s
+2026-02-16T07:13:00.827108,0.0300,RESUME,PAUSED,14,低速: 0.0300 m/s
