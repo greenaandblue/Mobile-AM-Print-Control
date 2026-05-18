@@ -24,6 +24,9 @@ Usage
 
   # Or via rosrun:
   rosrun <your_pkg> base_control_script.py _linear_speed:=0.2 _distance:=3.0
+
+  attention: gcode_sender_node == node.py ; base_control_script == motion.py ;
+            gcode_sender_script == test.py
 """
 
 
